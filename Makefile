@@ -18,6 +18,9 @@ tools:
 run: build
 	@$(JAVA) -cp $(BIN_DIR) $(MAIN_CLASS) $(ARGS)
 
+gen: tools
+	@$(JAVA) -cp $(BIN_DIR) $(TOOLS_DIR).GenerateAst $(SRC_DIR)
+
 clean:
 	@rm -rf $(BIN_DIR)
 

@@ -56,6 +56,8 @@ class Parser {
             return printStatement();
         if (match(LEFT_BRACE))
             return blockStatement();
+        if (match(IF))
+            return ifStatement();
         return expressionStatement();
     }
 
@@ -74,6 +76,20 @@ class Parser {
 
         consume(RIGHT_BRACE, "Expect '}' after block.");
         return new Stmt.Block(statements);
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after 'if' condition.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     private Stmt expressionStatement() {
@@ -112,18 +128,44 @@ class Parser {
     }
 
     private Expr ternary() {
-        Expr expr = equality();
+        Expr expr = or();
 
         if (match(QUESTION)) {
             Token operator = previous();
             Expr middle = expression(); // Parsed as if parenthesized
             consume(COLON, "Unfinished ternary operator. Syntax : condition ? value if true : value if false.");
-            Expr right = equality();
+            Expr right = ternary();
             expr = new Expr.Ternary(operator, expr, middle, right);
         }
 
         return expr;
     }
+
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+
+        while (match(AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+
 
     private Expr equality() {
         Expr expr = comparison();

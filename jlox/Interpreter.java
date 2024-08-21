@@ -51,6 +51,16 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Void visitIfStmt(Stmt.If statement) {
+        if (isTruthy(evaluate(statement.condition))) {
+            execute(statement.thenBranch);
+        } else if (statement.elseBranch != null) {
+            execute(statement.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
     }
@@ -142,6 +152,19 @@ class Interpreter implements Expr.Visitor<Object>,
             default:
                 return null;
         }
+    }
+
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        // Lazy evaluation / Short-circuit here
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left)) return left;
+        } else {
+            if (!isTruthy(left)) return left;
+        }
+
+        return evaluate(expr.right);
     }
 
     public Object visitVariableExpr(Expr.Variable expr) {
