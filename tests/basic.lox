@@ -1,0 +1,57 @@
+// Example 1: Simple Assignment
+var a = "Hello, world!";
+print a;
+
+// Example 2: Binary Expression
+var b = 3 + 4 * 5;
+print b;
+
+// Example 3: Grouping
+var c = (3 + 4) * 5;
+print c;
+
+// Example 4: Unary Expression
+var d = -c;
+print d;
+
+// Example 5: Ternary Expression
+var e = c > d ? c : d;
+print e;
+
+// Example 6: Variable Access
+var f = e;
+print f;
+
+// Example 7: Complex Expression
+var g = (b + c) / (d - f) + e;
+print g;
+
+// Example 8: Nested Grouping
+var h = ((b + c) * (e - f)) / g;
+print h;
+
+// Example 9: Complex Unary and Binary
+var i = -h + (g * f);
+print i;
+
+/*
+// Example 10: Chained Comparisons
+var j = a < b && b < c || c > d;
+print j;
+*/
+
+// Example 11: String Concatenation and Arithmetic
+var k = "Result: " + (b + c * d);
+print k;
+
+/*
+// Example 12: Conditional Logic
+var l = j ? k : "No result";
+print l;
+*/
+
+/*
+// Example 13: Function Call Simulation
+var m = fakeFunction(b, c);
+print m;
+*/
