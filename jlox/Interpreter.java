@@ -6,10 +6,12 @@ class Interpreter implements Expr.Visitor<Object>,
                              Stmt.Visitor<Void> {
 
     private Environment environment = new Environment();
+    public String lastValueRepr = null;
 
     void interpret(List<Stmt> statements) {
         try {
             for (Stmt statement : statements) {
+                lastValueRepr = null;
                 execute(statement);
             }
         } catch (RuntimeError error) {
@@ -17,10 +19,10 @@ class Interpreter implements Expr.Visitor<Object>,
         }
     }
 
-
     @Override
     public Void visitExpressionStmt(Stmt.Expression statement) {
-        evaluate(statement.expression);
+        Object value = evaluate(statement.expression);
+        lastValueRepr = stringify(value);
         return null;
     }
 
@@ -32,8 +34,14 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Void visitBlockStmt(Stmt.Block statement) {
+        executeBlock(statement.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
     public Void visitVarStmt(Stmt.Var statement) {
-        Object value = null;
+        Object value = Environment.UNINITIALIZED;
         if (statement.initializer != null) {
             value = evaluate(statement.initializer);
         }
@@ -86,7 +94,11 @@ class Interpreter implements Expr.Visitor<Object>,
                     return (double) left + (double) right;
                 if (left instanceof String && right instanceof String)
                     return (String) left + (String) right;
-                throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
+                if (left instanceof String && right instanceof Double)
+                    return (String) left + right.toString();
+                if (left instanceof Double && right instanceof String)
+                    return left.toString() + (String) right;
+                throw new RuntimeError(expr.operator, "Operands must be two numbers, or one of them must be a String.");
 
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
@@ -136,8 +148,26 @@ class Interpreter implements Expr.Visitor<Object>,
         return environment.get(expr.name);
     }
 
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
     private Void execute(Stmt stmt) {
         return stmt.accept(this);
+    }
+
+    private void executeBlock(List<Stmt> statements, Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+            for (Stmt stmt : statements) {
+                execute(stmt);
+            }
+        } finally {
+            this.environment = previous;
+        }
     }
 
     private Object evaluate(Expr expr) {

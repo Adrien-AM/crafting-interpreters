@@ -54,6 +54,8 @@ class Parser {
     private Stmt statement() {
         if (match(PRINT))
             return printStatement();
+        if (match(LEFT_BRACE))
+            return blockStatement();
         return expressionStatement();
     }
 
@@ -63,6 +65,17 @@ class Parser {
         return new Stmt.Print(value);
     }
 
+    private Stmt blockStatement() {
+        List<Stmt> statements = new ArrayList<>();
+
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+
+        consume(RIGHT_BRACE, "Expect '}' after block.");
+        return new Stmt.Block(statements);
+    }
+
     private Stmt expressionStatement() {
         Expr expr = expression();
         consume(SEMICOLON, "Expect ';' after expression.");
@@ -70,12 +83,29 @@ class Parser {
     }
 
     private Expr expression() {
-        Expr expr = ternary();
+        Expr expr = assignment();
 
         while (match(COMMA)) {
             Token operator = previous();
-            Expr right = ternary();
+            Expr right = assignment();
             expr = new Expr.Binary(expr, operator, right);
+        }
+
+        return expr;
+    }
+
+    private Expr assignment() {
+        Expr expr = ternary();
+
+        if (match(EQUAL)) {
+            Token equals = previous();
+            Expr value = expression();
+
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Expr.Variable)expr).name;
+                return new Expr.Assign(name, value);
+            }
+            error(equals, "Invalid assignment target.");
         }
 
         return expr;

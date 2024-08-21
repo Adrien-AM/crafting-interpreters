@@ -44,6 +44,11 @@ public class Lox {
             if (line == null)
                 break;
             run(line);
+
+            // REPL-specific : print the evaluation of the last expression
+            if (interpreter.lastValueRepr != null) {
+                System.out.println(interpreter.lastValueRepr);
+            }
             hadError = false;
         }
     }
@@ -54,6 +59,7 @@ public class Lox {
 
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
+
         // Stop if there was a syntax error.
         if (hadError)
             return;
@@ -74,7 +80,7 @@ public class Lox {
     }
 
     private static void report(int line, String where, String message) {
-        System.err.println("[line] " + line + "] Error" + where + ": " + message);
+        System.err.println("[line " + line + "] Error" + where + ": " + message);
         hadError = true;
     }
 
