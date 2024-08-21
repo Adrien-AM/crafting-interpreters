@@ -1,57 +1,75 @@
 // Example 1: Simple Assignment
 var a = "Hello, world!";
-print a;
+assert a == "Hello, world!";
 
 // Example 2: Binary Expression
 var b = 3 + 4 * 5;
-print b;
+assert b == 23;
 
 // Example 3: Grouping
 var c = (3 + 4) * 5;
-print c;
+assert c == 35;
 
 // Example 4: Unary Expression
 var d = -c;
-print d;
+assert d == -35;
 
 // Example 5: Ternary Expression
 var e = c > d ? c : d;
-print e;
+assert e == 35;
 
 // Example 6: Variable Access
 var f = e;
-print f;
+assert f == 35;
 
-// Example 7: Complex Expression
+// Example 7: Complex Expression with explicit values
+b = 20;
+c = 15;
+d = -20;
+f = 15;
+e = 25;
 var g = (b + c) / (d - f) + e;
-print g;
-
-// Example 8: Nested Grouping
-var h = ((b + c) * (e - f)) / g;
-print h;
+assert g == 24; // (20 + 15) / (-20 - 15) + 25 = 35 / -35 + 25 = -1 + 25 = 24
 
 // Example 9: Complex Unary and Binary
-var i = -h + (g * f);
-print i;
+var i = -b + (f * c);
+assert i == 205;
 
-/*
 // Example 10: Chained Comparisons
-var j = a < b && b < c || c > d;
-print j;
-*/
+var j = b < c and c > d or d > e;
+assert !j;
 
 // Example 11: String Concatenation and Arithmetic
-var k = "Result: " + (b + c * d);
-print k;
+var k = "Result: " + (b + c);
+assert k == "Result: 35.0";
 
-/*
 // Example 12: Conditional Logic
 var l = j ? k : "No result";
-print l;
-*/
+assert l == "No result";
 
 /*
 // Example 13: Function Call Simulation
 var m = fakeFunction(b, c);
-print m;
+assert m == "Expected: Function Result";
 */
+
+// Example 14: If/Else Test
+var n = 10;
+if (n > 5) {
+    assert true;
+} else {
+    assert false;
+}
+
+// Example 15: While Loop Test
+var o = 0;
+while (o < 5)
+    o = o + 1;
+assert o == 5;
+
+// Example 16: For Loop Test
+var i = 0;
+for (var p = 0; p < 3; p = p + 1) {
+    assert p == i;
+    i = i + 1;
+}

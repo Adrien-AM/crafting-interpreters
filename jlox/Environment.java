@@ -43,10 +43,10 @@ class Environment {
         // But it would mean that we can modify the value of global variables
         // Do we want that ?
 
-        // if (enclosing != null) {
-        //     enclosing.assign(name, value);
-        //     return;
-        // }
+        if (enclosing != null) {
+            enclosing.assign(name, value);
+            return;
+        }
 
         throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
     }

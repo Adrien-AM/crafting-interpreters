@@ -27,7 +27,9 @@ public class GenerateAst {
                 "Expression : Expr expression",
                 "If : Expr condition, Stmt thenBranch, Stmt elseBranch",
                 "Print : Expr expression",
-                "Var : Token name, Expr initializer"));
+                "Assert : Token operator, Expr expression", // assert token needed for error handling
+                "Var : Token name, Expr initializer",
+                "While : Expr condition, Stmt body"));
     }
 
     public static void defineAst(String outputDir, String baseName, List<String> types)

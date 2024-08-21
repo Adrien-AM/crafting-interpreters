@@ -20,7 +20,4 @@ jobs:
 
       - name: Run tests
         run: |
-          for file in tests/*; do
-            echo "Running test $file"
-            make run ARGS="$file"
-          done
+          make test

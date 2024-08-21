@@ -23,6 +23,7 @@ class Scanner {
     static {
         keywords = new HashMap<>();
         keywords.put("and", AND);
+        keywords.put("assert", ASSERT);
         keywords.put("class", CLASS);
         keywords.put("else", ELSE);
         keywords.put("false", FALSE);

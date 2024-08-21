@@ -34,6 +34,16 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Void visitAssertStmt(Stmt.Assert statement) {
+        Object value = evaluate(statement.expression);
+        if (!isTruthy(value)) {
+            throw new RuntimeError(statement.operator, "Assertion error : " + stringify(value) + " is not truthy.");
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitBlockStmt(Stmt.Block statement) {
         executeBlock(statement.statements, new Environment(environment));
         return null;
@@ -57,6 +67,15 @@ class Interpreter implements Expr.Visitor<Object>,
         } else if (statement.elseBranch != null) {
             execute(statement.elseBranch);
         }
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While statement) {
+        while (isTruthy(evaluate(statement.condition))) {
+            execute(statement.body);
+        }
+
         return null;
     }
 

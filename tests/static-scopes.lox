@@ -6,14 +6,14 @@ var c = "global c";
     var b = "outer b";
     {
         var a = "inner a";
-        print a;
-        print b;
-        print c;
+        assert a == "inner a";
+        assert b == "outer b";
+        assert c == "global c";
     }
-    print a;
-    print b;
-    print c;
+    assert a == "outer a";
+    assert b == "outer b";
+    assert c == "global c";
 }
-print a;
-print b;
-print c;
+assert a == "global a";
+assert b == "global b";
+assert c == "global c";
