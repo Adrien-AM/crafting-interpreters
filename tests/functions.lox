@@ -1,0 +1,61 @@
+// Test function definition and simple return
+fun simpleReturn() {
+    return 42;
+}
+var result = simpleReturn();
+assert result == 42;
+
+// Test function with parameters and computation
+fun add(a, b) {
+    return a + b;
+}
+var sum = add(10, 20);
+assert sum == 30;
+
+// Test function with no return statement
+fun noReturn() {
+    var local = "test";
+}
+var noResult = noReturn();
+assert noResult == nil;
+
+// Test nested function calls
+fun outerFunction(x) {
+    fun innerFunction(y) {
+        return y * 2;
+    }
+    return innerFunction(x) + 3;
+}
+var nestedResult = outerFunction(5);
+assert nestedResult == 13;
+
+// Test function that returns another function
+fun returnFunction() {
+    fun inner() {
+        return "inner";
+    }
+    return inner;
+}
+var func = returnFunction();
+var innerResult = func();
+assert innerResult == "inner";
+
+// Test recursive function
+fun factorial(n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+var factorialResult = factorial(5);
+assert factorialResult == 120;
+
+// Test closures
+fun outerClosure() {
+    var outerVar = 10;
+    fun innerClosure() {
+        return outerVar * 2;
+    }
+    return innerClosure;
+}
+var closureFunc = outerClosure();
+var closureResult = closureFunc();
+assert closureResult == 20;

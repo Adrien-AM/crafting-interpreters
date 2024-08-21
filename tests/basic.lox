@@ -31,29 +31,23 @@ e = 25;
 var g = (b + c) / (d - f) + e;
 assert g == 24; // (20 + 15) / (-20 - 15) + 25 = 35 / -35 + 25 = -1 + 25 = 24
 
-// Example 9: Complex Unary and Binary
+// Example 8: Complex Unary and Binary
 var i = -b + (f * c);
 assert i == 205;
 
-// Example 10: Chained Comparisons
+// Example 9: Chained Comparisons
 var j = b < c and c > d or d > e;
 assert !j;
 
-// Example 11: String Concatenation and Arithmetic
+// Example 10: String Concatenation and Arithmetic
 var k = "Result: " + (b + c);
 assert k == "Result: 35.0";
 
-// Example 12: Conditional Logic
+// Example 11: Conditional Logic
 var l = j ? k : "No result";
 assert l == "No result";
 
-/*
-// Example 13: Function Call Simulation
-var m = fakeFunction(b, c);
-assert m == "Expected: Function Result";
-*/
-
-// Example 14: If/Else Test
+// Example 12: If/Else Test
 var n = 10;
 if (n > 5) {
     assert true;
@@ -61,13 +55,13 @@ if (n > 5) {
     assert false;
 }
 
-// Example 15: While Loop Test
+// Example 13: While Loop Test
 var o = 0;
 while (o < 5)
     o = o + 1;
 assert o == 5;
 
-// Example 16: For Loop Test
+// Example 14: For Loop Test
 var i = 0;
 for (var p = 0; p < 3; p = p + 1) {
     assert p == i;

@@ -15,6 +15,7 @@ public class GenerateAst {
         defineAst(outputDir, "Expr", Arrays.asList(
                 "Assign : Token name, Expr value",
                 "Binary : Expr left, Token operator, Expr right",
+                "Call : Expr callee, Token paren, List<Expr> arguments",
                 "Grouping : Expr expression",
                 "Literal : Object value",
                 "Logical : Expr left, Token operator, Expr right",
@@ -29,7 +30,9 @@ public class GenerateAst {
                 "Print : Expr expression",
                 "Assert : Token operator, Expr expression", // assert token needed for error handling
                 "Var : Token name, Expr initializer",
-                "While : Expr condition, Stmt body"));
+                "While : Expr condition, Stmt body",
+                "Function : Token name, List<Token> params, List<Stmt> body",
+                "Return : Token keyword, Expr value"));
     }
 
     public static void defineAst(String outputDir, String baseName, List<String> types)

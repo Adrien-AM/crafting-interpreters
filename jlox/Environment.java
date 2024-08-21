@@ -24,13 +24,13 @@ class Environment {
         if (values.containsKey(name.lexeme)) {
             Object value = values.get(name.lexeme);
             if (value == UNINITIALIZED) {
-                throw new RuntimeException("Trying to access uninitialized variable '" + name.lexeme + "'.");
+                throw new RuntimeError(name, "Trying to access uninitialized variable '" + name.lexeme + "'.");
             }
             return value;
         }
         if (enclosing != null)
             return enclosing.get(name); // recursive call through the scope stack
-        throw new RuntimeException("Undefined variable '" + name.lexeme + "'.");
+        throw new RuntimeError(name, "Undefined variable '" + name.lexeme + "'.");
     }
 
     void assign(Token name, Object value) {

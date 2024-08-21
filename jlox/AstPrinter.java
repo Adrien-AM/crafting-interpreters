@@ -1,5 +1,9 @@
 package jlox;
 
+import java.util.List;
+
+import jlox.Expr.Call;
+
 class AstPrinter implements Expr.Visitor<String> {
     String print(Expr expr) {
         return expr.accept(this);
@@ -34,6 +38,11 @@ class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitCallExpr(Call expr) {
+        return parenthesize(expr.callee.toString(), expr.arguments);
+    }
+
+    @Override
     public String visitTernaryExpr(Expr.Ternary expr) {
         return parenthesize(expr.operator.lexeme,
                 expr.left, expr.middle, expr.right);
@@ -48,7 +57,12 @@ class AstPrinter implements Expr.Visitor<String> {
         return expr.name.lexeme;
     }
 
+
     private String parenthesize(String name, Expr... exprs) {
+        return parenthesize(name, exprs);
+    }
+
+    private String parenthesize(String name, List<Expr> exprs) {
         StringBuilder builder = new StringBuilder();
         builder.append("(").append(name);
         for (Expr expr : exprs) {
