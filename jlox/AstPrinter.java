@@ -3,6 +3,7 @@ package jlox;
 import java.util.List;
 
 import jlox.Expr.Call;
+import jlox.Expr.Lambda;
 
 class AstPrinter implements Expr.Visitor<String> {
     String print(Expr expr) {
@@ -57,6 +58,10 @@ class AstPrinter implements Expr.Visitor<String> {
         return expr.name.lexeme;
     }
 
+    @Override
+    public String visitLambdaExpr(Lambda expr) {
+        return parenthesize("Anonymous function");
+    }
 
     private String parenthesize(String name, Expr... exprs) {
         return parenthesize(name, exprs);

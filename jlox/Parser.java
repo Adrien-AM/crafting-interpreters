@@ -65,8 +65,10 @@ class Parser {
             return forStatement();
         if (match(ASSERT))
             return assertStatement();
-        if (match(FUN))
-            return function("function");
+        if (match(FUN)) {
+            if (check(IDENTIFIER)) return function("function");
+            return lambdaStatement();
+        }
         if (match(RETURN))
             return returnStatement();
 
@@ -167,8 +169,20 @@ class Parser {
         return new Stmt.Expression(expr);
     }
 
-    private Stmt.Function function(String kind) {
-        Token name = consume(IDENTIFIER, "Expect " + kind + "identifier name.");
+    private Stmt lambdaStatement() {
+        // Ugly solution :
+        // to know if its a function declaration or an anonymous function statement, we have to check for the identifier
+        // but the lambda() function needs the 'fun' keyword to detect the lambda ;
+        // therefore we need to rollback a bit
+        if (current == 0) error(peek(), "Lambda function called but no 'fun' keyword found. This should never happen.");
+        current--;
+        Expr expr = lambda();
+        consume(SEMICOLON, "Expect ';' after expression.");
+        return new Stmt.Expression(expr);
+    }
+
+    private Stmt function(String kind) {
+        Token name = consume(IDENTIFIER, "Expect function identifier for kind '" + kind + "'.");
         consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
 
         List<Token> parameters = new ArrayList<>();
@@ -195,7 +209,7 @@ class Parser {
 
         Expr value = null;
 
-        if(!check(SEMICOLON)) {
+        if (!check(SEMICOLON)) {
             value = expression();
         }
 
@@ -323,6 +337,32 @@ class Parser {
             Token operator = previous();
             Expr right = unary();
             return new Expr.Unary(operator, right);
+        }
+
+        return lambda();
+    }
+
+    private Expr lambda() {
+        if (match(FUN)) {
+            consume(LEFT_PAREN, "Expect '(' after lambda.");
+
+            List<Token> parameters = new ArrayList<>();
+            if (!check(RIGHT_PAREN)) {
+                do {
+                    if (parameters.size() >= 255) {
+                        error(peek(), "Can't have more than 255 parameters.");
+                    }
+                    parameters.add(
+                            consume(IDENTIFIER, "Expect parameter name."));
+                } while (match(COMMA));
+            }
+            consume(RIGHT_PAREN, "Expect ')' after parameters.");
+
+            consume(LEFT_BRACE, "Expect '{' before lambda body.");
+
+            List<Stmt> body = blockStatement();
+
+            return new Expr.Lambda(parameters, body);
         }
 
         return call();

@@ -13,6 +13,7 @@ abstract class Expr {
         R visitUnaryExpr(Unary expr);
         R visitTernaryExpr(Ternary expr);
         R visitVariableExpr(Variable expr);
+        R visitLambdaExpr(Lambda expr);
     }
 
     static class Assign extends Expr {
@@ -152,6 +153,21 @@ abstract class Expr {
         }
 
         final Token name;
+    }
+
+    static class Lambda extends Expr {
+        Lambda(List<Token> params, List<Stmt> body) {
+            this.params = params;
+            this.body = body;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitLambdaExpr(this);
+        }
+
+        final List<Token> params;
+        final List<Stmt> body;
     }
 
     abstract <R> R accept(Visitor<R> visitor);

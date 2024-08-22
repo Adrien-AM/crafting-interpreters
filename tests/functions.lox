@@ -59,3 +59,29 @@ fun outerClosure() {
 var closureFunc = outerClosure();
 var closureResult = closureFunc();
 assert closureResult == 20;
+
+
+// Lambda functions
+fun thrice(fn) {
+    var a = 0;
+    for (var i = 1; i <= 3; i = i + 1) {
+        a = a + fn(i);
+    }
+    return a;
+}
+
+var a = thrice(fun (a) {
+    return 2 * a;
+});
+assert a == 12;
+
+// Tricky lambda case
+fun () {};
+
+// Scope fun
+fun scope(a) {
+    assert a == "global";
+    var a = "local";
+    assert a == "local";
+}
+scope("global");
