@@ -1,14 +1,19 @@
 package jlox;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 class Interpreter implements Expr.Visitor<Object>,
                              Stmt.Visitor<Void> {
 
-    final Environment globals = new Environment();
-    private Environment environment = globals;
+    final Environment globals = new Environment(); // root env
+    private Environment environment = globals; // current env
+
     public String lastValueRepr = null;
+
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     // Define native functions
     Interpreter() {
@@ -243,12 +248,19 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return lookUpVariable(expr.name, expr);
     }
 
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            environment.assign(expr.name, value);
+        }
+
         return value;
     }
 
@@ -324,5 +336,20 @@ class Interpreter implements Expr.Visitor<Object>,
             return text;
         }
         return object.toString();
+    }
+
+    // Semantic analysis
+
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
     }
 }
