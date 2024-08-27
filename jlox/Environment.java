@@ -39,10 +39,6 @@ class Environment {
             return;
         }
 
-        // We COULD walk the env stack here
-        // But it would mean that we can modify the value of global variables
-        // Do we want that ?
-
         if (enclosing != null) {
             enclosing.assign(name, value);
             return;

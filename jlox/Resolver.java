@@ -9,7 +9,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum FunctionType {
         NONE,
         FUNCTION,
-        METHOD
+        METHOD,
+        INITIALIZER
     }
 
     private enum ClassType {
@@ -43,7 +44,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitCallExpr(Expr.Call expr) {
         resolve(expr.callee);
-        for (Expr arg : expr.arguments) resolve(arg);
+        for (Expr arg : expr.arguments)
+            resolve(arg);
         return null;
     }
 
@@ -96,12 +98,13 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     public Void visitVariableExpr(Expr.Variable expr) {
         if (!scopes.isEmpty() &&
                 scopes.peek().get(expr.name.lexeme) == Boolean.FALSE) {
-                    Lox.error(expr.name, "Can't read local variable in its own initializer.");
+            Lox.error(expr.name, "Can't read local variable in its own initializer.");
         }
         resolveLocal(expr, expr.name);
 
         return null;
     }
+
     @Override
     public Void visitThisExpr(Expr.This expr) {
         if (currentClass == ClassType.NONE) {
@@ -136,7 +139,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     public Void visitIfStmt(Stmt.If stmt) {
         resolve(stmt.condition);
         resolve(stmt.thenBranch);
-        if (stmt.elseBranch != null) resolve(stmt.elseBranch);
+        if (stmt.elseBranch != null)
+            resolve(stmt.elseBranch);
         return null;
     }
 
@@ -155,7 +159,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         declare(stmt.name);
-        if (stmt.initializer != null) resolve(stmt.initializer);
+        if (stmt.initializer != null)
+            resolve(stmt.initializer);
         define(stmt.name);
         return null;
     }
@@ -181,12 +186,22 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         if (currentFunction == FunctionType.NONE) {
             Lox.error(stmt.keyword, "Return at the top level. Where the hell do you want to return ?");
         }
-        if (stmt.value != null) resolve(stmt.value);
+        if (stmt.value != null) {
+            if (currentFunction == FunctionType.INITIALIZER) {
+                Lox.error(stmt.keyword, "Can't return a value from a constructor.");
+            }
+            resolve(stmt.value);
+        }
         return null;
     }
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        for (Stmt.Static method : stmt.statics) {
+            FunctionType type = FunctionType.METHOD;
+            resolveFunction(method.function, type);
+        }
+
         ClassType enclosingClass = currentClass;
         currentClass = ClassType.CLASS;
 
@@ -197,8 +212,14 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         scopes.peek().put("this", true); // Declare "this" as a variable
 
         for (Stmt.Function method : stmt.methods) {
-            resolveFunction(method, FunctionType.METHOD);
+            FunctionType type = FunctionType.METHOD;
+            if (method.name.lexeme.equals("init"))
+                type = FunctionType.INITIALIZER;
+            resolveFunction(method, type);
         }
+
+        for (Stmt.Function getter : stmt.getters)
+            resolveFunction(getter, FunctionType.METHOD);
 
         endScope();
         currentClass = enclosingClass;
@@ -206,10 +227,35 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitStaticStmt(Stmt.Static stmt) {
+        if (currentClass != ClassType.CLASS)
+            Lox.error(stmt.function.name, "Can't define static method outside of class definition");
+
+        HashMap<String, Boolean> scope = scopes.pop();
+        currentClass = ClassType.NONE;
+
+        declare(stmt.function.name);
+        define(stmt.function.name);
+
+        // Resolve the static method
+        Stmt.Function method = (Stmt.Function) stmt.function;
+        FunctionType type = FunctionType.METHOD;
+        if (method.name.lexeme.equals("init")) {
+            Lox.error(stmt.function.name, "Static methods cannot be named 'init'.");
+        }
+        resolveFunction(method, type);
+
+        scopes.add(scope);
+        currentClass = ClassType.CLASS;
+
+        return null;
+    }
+
     void resolve(List<Stmt> statements) {
         for (Stmt stmt : statements) {
             resolve(stmt);
-        }        
+        }
     }
 
     private void resolve(Stmt stmt) {
@@ -243,9 +289,11 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
         beginScope();
 
-        for (Token param : params) {
-            declare(param);
-            define(param);
+        if (params != null) {
+            for (Token param : params) {
+                declare(param);
+                define(param);
+            }
         }
 
         resolve(body);
@@ -263,7 +311,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void declare(Token name) {
-        if (scopes.isEmpty()) return;
+        if (scopes.isEmpty())
+            return;
         Map<String, Boolean> scope = scopes.peek();
         if (scope.containsKey(name.lexeme)) {
             Lox.error(name, "A variable with this name already exists in this scope.");
@@ -272,7 +321,8 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void define(Token name) {
-        if (scopes.isEmpty()) return;
+        if (scopes.isEmpty())
+            return;
         Map<String, Boolean> scope = scopes.peek();
         scope.put(name.lexeme, true);
     }

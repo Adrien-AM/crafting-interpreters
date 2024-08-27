@@ -26,6 +26,10 @@ class LoxInstance {
         fields.put(name.lexeme, value);
     }
 
+    public void addGetter(String name, LoxGetter getter) {
+        fields.put(name, getter);
+    }
+
     @Override
     public String toString() {
         return "<" + klass.name + " instance>";

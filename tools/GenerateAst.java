@@ -37,7 +37,8 @@ public class GenerateAst {
                 "While : Expr condition, Stmt body",
                 "Function : Token name, List<Token> params, List<Stmt> body",
                 "Return : Token keyword, Expr value",
-                "Class : Token name, List<Stmt.Function> methods"));
+                "Class : Token name, List<Stmt.Function> methods, List<Stmt.Static> statics, List<Stmt.Function> getters",
+                "Static : Stmt.Function function"));
     }
 
     public static void defineAst(String outputDir, String baseName, List<String> types)

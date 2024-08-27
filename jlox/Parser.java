@@ -185,19 +185,21 @@ class Parser {
 
     private Stmt.Function function(String kind) {
         Token name = consume(IDENTIFIER, "Expect function identifier for kind '" + kind + "'.");
-        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-
-        List<Token> parameters = new ArrayList<>();
-        if (!check(RIGHT_PAREN)) {
-            do {
-                if (parameters.size() >= 255) {
-                    error(peek(), "Can't have more than 255 parameters.");
-                }
-                parameters.add(
-                        consume(IDENTIFIER, "Expect parameter name."));
-            } while (match(COMMA));
+        List<Token> parameters = null;
+        
+        if (match(LEFT_PAREN)) {
+            parameters = new ArrayList<>();
+            if (!check(RIGHT_PAREN)) {
+                do {
+                    if (parameters.size() >= 255) {
+                        error(peek(), "Can't have more than 255 parameters.");
+                    }
+                    parameters.add(
+                            consume(IDENTIFIER, "Expect parameter name."));
+                } while (match(COMMA));
+            }
+            consume(RIGHT_PAREN, "Expect ')' after parameters.");
         }
-        consume(RIGHT_PAREN, "Expect ')' after parameters.");
 
         consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
 
@@ -225,14 +227,28 @@ class Parser {
         consume(LEFT_BRACE, "Expect '{' after class name.");
 
         List<Stmt.Function> methods = new ArrayList<>();
+        List<Stmt.Function> getters = new ArrayList<>();
+        List<Stmt.Static> statics = new ArrayList<>();
 
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
-            methods.add(function("method"));
+            if (match(STATIC))
+                statics.add(staticMethod());
+            else {
+                Stmt.Function function = function("method");
+                if (function.params != null) methods.add(function);
+                else getters.add(function);
+            }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name, methods, statics, getters);
+    }
+
+    private Stmt.Static staticMethod() {
+        Stmt.Function method = function("method");
+            
+        return new Stmt.Static(method);
     }
 
     private Expr expression() {

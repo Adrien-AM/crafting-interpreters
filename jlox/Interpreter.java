@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 class Interpreter implements Expr.Visitor<Object>,
-                             Stmt.Visitor<Void> {
+        Stmt.Visitor<Void> {
 
     final Environment globals = new Environment(); // root env
     private Environment environment = globals; // current env
@@ -19,11 +19,13 @@ class Interpreter implements Expr.Visitor<Object>,
     Interpreter() {
         globals.define("clock", new LoxCallable() {
             @Override
-            public int arity() { return 0; }
+            public int arity() {
+                return 0;
+            }
 
             @Override
             public Object call(Interpreter interpreter, List<Object> arguments) {
-                return (double)System.currentTimeMillis() / 1000.0;
+                return (double) System.currentTimeMillis() / 1000.0;
             }
 
             @Override
@@ -106,8 +108,9 @@ class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Void visitFunctionStmt(Stmt.Function statement) {
-        LoxFunction function = new LoxFunction(statement, environment);
-        if (statement.name != null) environment.define(statement.name.lexeme, function);
+        LoxFunction function = new LoxFunction(statement, environment, false);
+        if (statement.name != null)
+            environment.define(statement.name.lexeme, function);
         return null;
     }
 
@@ -115,7 +118,8 @@ class Interpreter implements Expr.Visitor<Object>,
     public Void visitReturnStmt(Stmt.Return stmt) {
         Object value = null;
 
-        if (stmt.value != null) value = evaluate(stmt.value);
+        if (stmt.value != null)
+            value = evaluate(stmt.value);
 
         throw new Return(value);
     }
@@ -126,13 +130,30 @@ class Interpreter implements Expr.Visitor<Object>,
 
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.methods) {
-            LoxFunction function = new LoxFunction(method, environment);
+            LoxFunction function = new LoxFunction(method, environment, method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
 
-        LoxClass klass = new LoxClass(stmt.name.lexeme, methods);
+        Map<String, LoxGetter> getters = new HashMap<>();
+        for (Stmt.Function getter : stmt.getters) {
+            LoxGetter function = new LoxGetter(getter, environment);
+            getters.put(getter.name.lexeme, function);
+        }
+
+        Map<String, LoxFunction> statics = new HashMap<>();
+        for (Stmt.Static method : stmt.statics) {
+            LoxFunction function = new LoxFunction(method.function, globals, false);
+            statics.put(method.function.name.lexeme, function);
+        }
+
+        LoxClass klass = new LoxClass(stmt.name.lexeme, methods, statics, getters);
         environment.assign(stmt.name, klass);
-        
+
+        return null;
+    }
+
+    @Override
+    public Void visitStaticStmt(Stmt.Static stmt) {
         return null;
     }
 
@@ -163,9 +184,10 @@ class Interpreter implements Expr.Visitor<Object>,
         if (!(callee instanceof LoxCallable)) {
             throw new RuntimeError(expr.paren, "Can only call functions or classes.");
         }
-        LoxCallable function = (LoxCallable)callee;
+        LoxCallable function = (LoxCallable) callee;
         if (arguments.size() != function.arity()) {
-            throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments, got " + arguments.size() + ".");
+            throw new RuntimeError(expr.paren,
+                    "Expected " + function.arity() + " arguments, got " + arguments.size() + ".");
         }
 
         return function.call(this, arguments);
@@ -175,7 +197,10 @@ class Interpreter implements Expr.Visitor<Object>,
         Object object = evaluate(expr.object);
 
         if (object instanceof LoxInstance) {
-            return ((LoxInstance)object).get(expr.name);
+            Object value = ((LoxInstance) object).get(expr.name);
+            if (value instanceof LoxGetter)
+                return ((LoxGetter) value).call(this);
+            return value;
         }
 
         throw new RuntimeError(expr.name, "Getter cannot be called on non-object type.");
@@ -183,7 +208,7 @@ class Interpreter implements Expr.Visitor<Object>,
 
     public Object visitSetExpr(Expr.Set expr) {
         Object object = evaluate(expr.object);
-        
+
         if (object instanceof LoxInstance) {
             Object value = evaluate(expr.value);
             ((LoxInstance) object).set(expr.name, value);
@@ -283,9 +308,11 @@ class Interpreter implements Expr.Visitor<Object>,
 
         // Lazy evaluation / Short-circuit here
         if (expr.operator.type == TokenType.OR) {
-            if (isTruthy(left)) return left;
+            if (isTruthy(left))
+                return left;
         } else {
-            if (!isTruthy(left)) return left;
+            if (!isTruthy(left))
+                return left;
         }
 
         return evaluate(expr.right);
@@ -363,8 +390,9 @@ class Interpreter implements Expr.Visitor<Object>,
     }
 
     private void checkNonZero(Token operator, Object operand) {
-        if (!(operand instanceof Double)) return;
-        if ((Double)operand == 0) {
+        if (!(operand instanceof Double))
+            return;
+        if ((Double) operand == 0) {
             throw new RuntimeError(operator, "Error: division by zero.");
         }
     }

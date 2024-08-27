@@ -171,3 +171,48 @@ class Rectangle {
         return this.width * this.height;
     }
 }
+
+// Test static method
+class MathUtils {
+    static square(x) {
+        return x * x;
+    }
+}
+
+assert MathUtils.square(4) == 16;
+assert MathUtils.square(-3) == 9;
+
+// Test getters
+
+class Circle {
+    init(radius) {
+        this.radius = radius;
+    }
+
+    area {
+        return 3.141592653 * this.radius * this.radius;
+    }
+}
+
+var circle = Circle(4);
+assert circle.area == (3.141592653 * 16);
+
+// Test getter that uses other getter
+class Temperature {
+    init(fahrenheit) {
+        this.fahrenheit = fahrenheit;
+    }
+
+    celsius {
+        return (this.fahrenheit - 32) * 5/9;
+    }
+
+    kelvin {
+        return this.celsius + 273.15;
+    }
+}
+
+var temp = Temperature(212);
+assert temp.fahrenheit == 212;
+assert temp.celsius == 100;
+assert temp.kelvin == 373.15;
