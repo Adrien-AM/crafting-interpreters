@@ -15,6 +15,9 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
 
+      - name: Install Valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+
       - name: Build project
         run: cd jlox && make build
 
