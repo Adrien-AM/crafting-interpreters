@@ -16,8 +16,8 @@ jobs:
           distribution: 'adopt'
 
       - name: Build project
-        run: make build
+        run: cd jlox && make build
 
       - name: Run tests
         run: |
-          make test
+          cd jlox && make test
