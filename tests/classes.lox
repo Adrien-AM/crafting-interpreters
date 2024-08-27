@@ -1,0 +1,173 @@
+// Test class declaration with methods
+class DevonshireCream {
+    serveOn() {
+        return "Scones";
+    }
+}
+
+// Test instanciation
+class Bagel {}
+var a = Bagel();
+
+a.foo = 3;
+assert a.foo == 3;
+
+// Test methods
+class Bacon {
+    eat() {
+        return "Yummy!";
+    }
+}
+
+assert Bacon().eat() == "Yummy!";
+
+// Test usage of "this" in a method
+class Cake {
+    flavor() {
+        return "vanilla";
+    }
+
+    describe() {
+        return "This is a " + this.flavor() + " cake.";
+    }
+}
+
+var cake = Cake();
+assert cake.describe() == "This is a vanilla cake.";
+
+
+// Method hoisting
+class Person {
+    getName() {
+        return this.name;
+    }
+}
+
+var jane = Person();
+jane.name = "Jane";
+var method = jane.getName;
+
+assert method() == "Jane";
+
+// Test field initialization and access
+class Car {
+    setInfo(make, model) {
+        this.make = make;
+        this.model = model;
+    }
+
+    getInfo() {
+        return this.make + " " + this.model;
+    }
+}
+
+var myCar = Car();
+myCar.setInfo("Toyota", "Corolla");
+assert myCar.make == "Toyota";
+assert myCar.model == "Corolla";
+assert myCar.getInfo() == "Toyota Corolla";
+
+// Test method overriding (without inheritance)
+class Animal {
+    speak() {
+        return "The animal makes a sound";
+    }
+}
+
+class Dog {
+    speak() {
+        return "Woof!";
+    }
+}
+
+var animal = Animal();
+var dog = Dog();
+assert animal.speak() == "The animal makes a sound";
+assert dog.speak() == "Woof!";
+
+// Test scope and shadowing with 'this'
+class Counter {
+    init() {
+        this.count = 0;
+    }
+
+    increment(count) {
+        this.count = this.count + count;
+    }
+
+    getCount() {
+        return this.count;
+    }
+}
+
+var counter = Counter();
+counter.init();
+counter.increment(5);
+assert counter.getCount() == 5;
+
+// Test 'this' in nested functions
+class Calculator {
+    setValue(initial) {
+        this.value = initial;
+    }
+
+    operate(func) {
+        var capturedThis = this;
+        fun operation(x) {
+            capturedThis.value = func(capturedThis.value, x);
+        }
+        return operation;
+    }
+
+    getValue() {
+        return this.value;
+    }
+}
+
+var calc = Calculator();
+calc.setValue(10);
+var add = calc.operate(fun(a, b) { return a + b; });
+add(5);
+assert calc.getValue() == 15;
+
+// Test method chaining
+class StringBuilder {
+    init() {
+        this.str = "";
+    }
+
+    append(text) {
+        this.str = this.str + text;
+        return this;
+    }
+
+    toString() {
+        return this.str;
+    }
+}
+
+var builder = StringBuilder();
+builder.init();
+var result = builder
+    .append("Hello")
+    .append(" ")
+    .append("World")
+    .toString();
+assert result == "Hello World";
+
+// Test method that modifies multiple fields
+class Rectangle {
+    init() {
+        this.width = 0;
+        this.height = 0;
+    }
+
+    setDimensions(width, height) {
+        this.width = width;
+        this.height = height;
+    }
+
+    area() {
+        return this.width * this.height;
+    }
+}

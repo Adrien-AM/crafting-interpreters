@@ -22,7 +22,7 @@ gen: tools
 	@$(JAVA) -cp $(BIN_DIR) $(TOOLS_DIR).GenerateAst $(SRC_DIR)
 
 test: build
-	@for file in tests/*.lox; do echo "Testing file $$file" ; $(MAKE) -s run ARGS="$$file"; done
+	@for file in tests/*.lox; do echo -n "Testing file $$file  " ; $(MAKE) -s run ARGS="$$file" && echo -e "\x1b[32mPassed !\x1b[37m"; done
 	
 clean:
 	@rm -rf $(BIN_DIR)

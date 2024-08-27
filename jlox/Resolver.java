@@ -8,12 +8,19 @@ import java.util.Stack;
 class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private enum FunctionType {
         NONE,
-        FUNCTION
+        FUNCTION,
+        METHOD
+    }
+
+    private enum ClassType {
+        NONE,
+        CLASS
     }
 
     private final Interpreter interpreter;
     private final Stack<HashMap<String, Boolean>> scopes = new Stack<>();
     private FunctionType currentFunction = FunctionType.NONE;
+    private ClassType currentClass = ClassType.NONE;
 
     Resolver(Interpreter interpreter) {
         this.interpreter = interpreter;
@@ -37,6 +44,19 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     public Void visitCallExpr(Expr.Call expr) {
         resolve(expr.callee);
         for (Expr arg : expr.arguments) resolve(arg);
+        return null;
+    }
+
+    @Override
+    public Void visitGetExpr(Expr.Get expr) {
+        resolve(expr.object);
+        return null;
+    }
+
+    @Override
+    public Void visitSetExpr(Expr.Set expr) {
+        resolve(expr.object);
+        resolve(expr.value);
         return null;
     }
 
@@ -80,6 +100,15 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         }
         resolveLocal(expr, expr.name);
 
+        return null;
+    }
+    @Override
+    public Void visitThisExpr(Expr.This expr) {
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expr.keyword, "Can't use 'this' outside of any class.");
+            return null;
+        }
+        resolveLocal(expr, expr.keyword);
         return null;
     }
 
@@ -156,6 +185,26 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         return null;
     }
 
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        ClassType enclosingClass = currentClass;
+        currentClass = ClassType.CLASS;
+
+        declare(stmt.name);
+        define(stmt.name);
+
+        beginScope();
+        scopes.peek().put("this", true); // Declare "this" as a variable
+
+        for (Stmt.Function method : stmt.methods) {
+            resolveFunction(method, FunctionType.METHOD);
+        }
+
+        endScope();
+        currentClass = enclosingClass;
+
+        return null;
+    }
 
     void resolve(List<Stmt> statements) {
         for (Stmt stmt : statements) {
@@ -189,10 +238,10 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     private void resolveFunctionLike(List<Token> params, List<Stmt> body, FunctionType type) {
-        beginScope();
-
         FunctionType enclosingFunction = currentFunction;
         currentFunction = type;
+
+        beginScope();
 
         for (Token param : params) {
             declare(param);
@@ -202,6 +251,7 @@ class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         resolve(body);
 
         endScope();
+        currentFunction = enclosingFunction;
     }
 
     private void beginScope() {

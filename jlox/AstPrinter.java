@@ -2,9 +2,6 @@ package jlox;
 
 import java.util.List;
 
-import jlox.Expr.Call;
-import jlox.Expr.Lambda;
-
 class AstPrinter implements Expr.Visitor<String> {
     String print(Expr expr) {
         return expr.accept(this);
@@ -34,13 +31,28 @@ class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitThisExpr(Expr.This expr) {
+        return parenthesize("", expr);
+    }
+
+    @Override
     public String visitUnaryExpr(Expr.Unary expr) {
         return parenthesize(expr.operator.lexeme, expr.right);
     }
 
     @Override
-    public String visitCallExpr(Call expr) {
+    public String visitCallExpr(Expr.Call expr) {
         return parenthesize(expr.callee.toString(), expr.arguments);
+    }
+
+    @Override
+    public String visitGetExpr(Expr.Get expr) {
+        return parenthesize("get " + expr.name.lexeme, expr.object);
+    }
+
+    @Override
+    public String visitSetExpr(Expr.Set expr) {
+        return parenthesize("set " + expr.name.lexeme, expr.object, expr.value);
     }
 
     @Override
@@ -59,7 +71,7 @@ class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
-    public String visitLambdaExpr(Lambda expr) {
+    public String visitLambdaExpr(Expr.Lambda expr) {
         return parenthesize("Anonymous function");
     }
 

@@ -22,7 +22,10 @@ public class GenerateAst {
                 "Unary : Token operator, Expr right",
                 "Ternary : Token operator, Expr left, Expr middle, Expr right",
                 "Variable : Token name",
-                "Lambda : List<Token> params, List<Stmt> body"));
+                "Lambda : List<Token> params, List<Stmt> body",
+                "Get : Expr object, Token name",
+                "Set : Expr object, Token name, Expr value",
+                "This : Token keyword"));
 
         defineAst(outputDir, "Stmt", Arrays.asList(
                 "Block : List<Stmt> statements",
@@ -33,7 +36,8 @@ public class GenerateAst {
                 "Var : Token name, Expr initializer",
                 "While : Expr condition, Stmt body",
                 "Function : Token name, List<Token> params, List<Stmt> body",
-                "Return : Token keyword, Expr value"));
+                "Return : Token keyword, Expr value",
+                "Class : Token name, List<Stmt.Function> methods"));
     }
 
     public static void defineAst(String outputDir, String baseName, List<String> types)

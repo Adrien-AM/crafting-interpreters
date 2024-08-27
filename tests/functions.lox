@@ -78,10 +78,12 @@ assert a == 12;
 // Tricky lambda case
 fun () {};
 
+
+var a = "global";
 // Scope fun
-fun scope(a) {
+fun scope() {
     assert a == "global";
     var a = "local";
     assert a == "local";
 }
-scope("global");
+scope();
