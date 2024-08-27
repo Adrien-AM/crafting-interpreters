@@ -21,3 +21,9 @@ jobs:
       - name: Run tests
         run: |
           cd jlox && make test
+
+      - name: Additional tests
+        run: |
+          cd clox
+          make
+          valgrind --leak-check=full ./build/clox
