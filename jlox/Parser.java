@@ -66,7 +66,8 @@ class Parser {
         if (match(ASSERT))
             return assertStatement();
         if (match(FUN)) {
-            if (check(IDENTIFIER)) return function("function");
+            if (check(IDENTIFIER))
+                return function("function");
             return lambdaStatement();
         }
         if (match(RETURN))
@@ -173,10 +174,12 @@ class Parser {
 
     private Stmt lambdaStatement() {
         // Ugly solution :
-        // to know if its a function declaration or an anonymous function statement, we have to check for the identifier
+        // to know if its a function declaration or an anonymous function statement, we
+        // have to check for the identifier
         // but the lambda() function needs the 'fun' keyword to detect the lambda ;
         // therefore we need to rollback a bit
-        if (current == 0) error(peek(), "Lambda function called but no 'fun' keyword found. This should never happen.");
+        if (current == 0)
+            error(peek(), "Lambda function called but no 'fun' keyword found. This should never happen.");
         current--;
         Expr expr = lambda();
         consume(SEMICOLON, "Expect ';' after expression.");
@@ -186,7 +189,7 @@ class Parser {
     private Stmt.Function function(String kind) {
         Token name = consume(IDENTIFIER, "Expect function identifier for kind '" + kind + "'.");
         List<Token> parameters = null;
-        
+
         if (match(LEFT_PAREN)) {
             parameters = new ArrayList<>();
             if (!check(RIGHT_PAREN)) {
@@ -224,6 +227,12 @@ class Parser {
     private Stmt classDeclaration() {
         Token name = consume(IDENTIFIER, "Expect class name.");
 
+        Expr.Variable superclass = null;
+        if (match(LESS)) {
+            consume(IDENTIFIER, "Expect class name after '<'.");
+            superclass = new Expr.Variable(previous());
+        }
+
         consume(LEFT_BRACE, "Expect '{' after class name.");
 
         List<Stmt.Function> methods = new ArrayList<>();
@@ -235,19 +244,21 @@ class Parser {
                 statics.add(staticMethod());
             else {
                 Stmt.Function function = function("method");
-                if (function.params != null) methods.add(function);
-                else getters.add(function);
+                if (function.params != null)
+                    methods.add(function);
+                else
+                    getters.add(function);
             }
         }
 
         consume(RIGHT_BRACE, "Expect '}' after class body.");
 
-        return new Stmt.Class(name, methods, statics, getters);
+        return new Stmt.Class(name, superclass, methods, statics, getters);
     }
 
     private Stmt.Static staticMethod() {
         Stmt.Function method = function("method");
-            
+
         return new Stmt.Static(method);
     }
 
@@ -441,6 +452,14 @@ class Parser {
 
         if (match(THIS)) {
             return new Expr.This(previous());
+        }
+
+        if (match(SUPER)) {
+            Token keyword = previous();
+            consume(DOT, "Expect '.' after 'super'.");
+            Token method = consume(IDENTIFIER,
+                    "Expect superclass method name.");
+            return new Expr.Super(keyword, method);
         }
 
         if (match(IDENTIFIER)) {

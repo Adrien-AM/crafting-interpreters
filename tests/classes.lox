@@ -216,3 +216,37 @@ var temp = Temperature(212);
 assert temp.fahrenheit == 212;
 assert temp.celsius == 100;
 assert temp.kelvin == 373.15;
+
+
+// Test method inheritance
+
+class Doughnut {
+    cook() {
+        return "10 minutes";
+    }
+}
+
+class BostonCream < Doughnut {}
+
+assert BostonCream().cook() == "10 minutes";
+
+// Test cascade inheritance with super
+class A {
+    method() {
+        return "Method A";
+    }
+}
+
+class B < A {
+    method() {
+        return "Method B";
+    }
+
+    test() {
+        super.method();
+    }
+}
+
+class C < B {}
+
+assert C().test() == "Method A";
