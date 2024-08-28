@@ -2,6 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=java
 
 clox/build
+clox/vgcore.*
 
 ### Java ###
 # Compiled class file

@@ -109,7 +109,7 @@ addConstant(Chunk* chunk, Value value)
 void writeConstant(Chunk* chunk, Value value, int line) {
     int constant = addConstant(chunk, value);
     OpCode op = OP_CONSTANT;
-    if (value >= 256) op = OP_CONSTANT_LONG;
+    if (chunk->constants.count >= 256) op = OP_CONSTANT_LONG;
     writeChunk(chunk, op, line);
     writeChunk(chunk, constant, line);
 }

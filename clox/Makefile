@@ -25,5 +25,5 @@ mem: $(TARGET)
 	@valgrind --leak-check=full ./$(TARGET)
 
 clean:
-	rm -rf $(BUILD_DIR)
+	rm -rf $(BUILD_DIR) vgcore.*
 
