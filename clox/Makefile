@@ -19,10 +19,10 @@ $(BUILD_DIR):
 	mkdir -p $@
 
 run: $(TARGET)
-	@./$(TARGET)
+	@./$(TARGET) $(ARGS)
 
 mem: $(TARGET)
-	@valgrind --leak-check=full ./$(TARGET)
+	@valgrind --leak-check=full --track-origins=yes ./$(TARGET) $(ARGS)
 
 clean:
 	rm -rf $(BUILD_DIR) vgcore.*
