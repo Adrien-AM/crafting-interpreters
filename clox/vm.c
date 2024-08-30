@@ -58,12 +58,16 @@ static void concatenate() {
     ObjString* a = AS_STRING(pop());
 
     int length = a->length + b->length;
+    char str[length];
 
-    ObjString* result = createString(length);
+    memcpy(str, a->chars, a->length);
+    memcpy(str + a->length, b->chars, b->length);
+    str[length] = '\0';
 
-    memcpy(result->chars, a->chars, a->length);
-    memcpy(result->chars + a->length, b->chars, b->length);
-    result->chars[length] = '\0';
+    ObjString* result = takeString(str, length);
+
+    // needed ? those are not variable strings but raw data
+    tableSet(&vm.strings, result, NIL_VAL);
 
     push(OBJ_VAL(result));
 }
@@ -71,6 +75,7 @@ static void concatenate() {
 void initVM() {
     resetStack();
     vm.objects = NULL;
+    initTable(&vm.strings);
 }
 
 InterpretResult run() {
@@ -185,4 +190,7 @@ Value pop() {
     return *vm.stackTop;
 }
 
-void freeVM() { freeObjects(); }
+void freeVM() {
+    freeObjects();
+    freeTable(&vm.strings);
+}

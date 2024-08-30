@@ -16,10 +16,11 @@ struct Obj {
 struct ObjString {
     Obj obj;
     int length;
+    uint32_t hash;
     char chars[]; // Flexible array member
 };
 
-ObjString* createString(int length);
+ObjString* takeString(const char* chars, int length);
 ObjString* copyString(const char* chars, int length);
 void printObject(Value value);
 
@@ -33,6 +34,5 @@ static inline bool isObjType(Value value, ObjType type) {
 
 #define AS_STRING(value) ((ObjString*)AS_OBJ(value))
 #define AS_CSTRING(value) (((ObjString*)AS_OBJ(value))->chars)
-
 
 #endif
