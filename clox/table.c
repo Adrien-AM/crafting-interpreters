@@ -1,9 +1,11 @@
-#include "table.h"
-#include "memory.h"
-#include "object.h"
-#include "value.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "memory.h"
+#include "object.h"
+#include "table.h"
+#include "value.h"
 
 #define TABLE_MAX_LOAD 0.75
 
@@ -25,15 +27,18 @@ static Entry* findEntry(Entry* entries, int capacity, ObjString* key) {
     Entry* tombstone = NULL;
 
     while (1) {
-        if (entry->key == key || entry->key == NULL) {
+        if (entry->key == NULL) {
             if (IS_NIL(entry->value)) {
-                // Actual empty entry
+                // Empty entry.
                 return tombstone != NULL ? tombstone : entry;
             } else {
-                // Tombstone !
-                if (tombstone != NULL)
+                // We found a tombstone.
+                if (tombstone == NULL)
                     tombstone = entry;
             }
+        } else if (entry->key == key) {
+            // We found the key.
+            return entry;
         }
         index = (index + 1) % capacity;
         entry = &entries[index];
@@ -120,14 +125,13 @@ ObjString* tableFindString(Table* table, const char* chars, int length,
                            uint32_t hash) {
     if (table->count == 0)
         return NULL;
-
     uint32_t index = hash % table->capacity;
-
-    Entry* entry = &(table->entries[index]);
-    while (1) {
+    for (;;) {
+        Entry* entry = &table->entries[index];
         if (entry->key == NULL) {
+            // Stop if we find an empty non-tombstone entry.
             if (IS_NIL(entry->value))
-                return NULL; // non-tombstone empty entry
+                return NULL;
         } else if (entry->key->length == length && entry->key->hash == hash &&
                    memcmp(entry->key->chars, chars, length) == 0) {
             // We found it.
