@@ -97,6 +97,8 @@ InterpretResult run() {
         push(valueType(a op b));                                               \
     } while (false)
 
+    Entry lastGlobalAccessed = {NULL, {0}}; // Caching
+
     for (;;) {
 #ifdef DEBUG_TRACE_EXECUTION
         printf(" ");
@@ -174,11 +176,36 @@ InterpretResult run() {
             case OP_GET_GLOBAL: {
                 ObjString* name = READ_STRING();
                 Value value;
-                if (!tableGet(&vm.globals, name, &value)) {
+
+                if (lastGlobalAccessed.key != NULL &&
+                    stringsEqual(lastGlobalAccessed.key, name)) {
+                    value = lastGlobalAccessed.value;
+                } else if (!tableGet(&vm.globals, name, &value)) {
                     runtimeError("Undefined variable %s.\n", name->chars);
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 push(value);
+                lastGlobalAccessed.key = name;
+                lastGlobalAccessed.value = value;
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                ObjString* name = READ_STRING();
+                if (tableSet(&vm.globals, name, peek(0))) {
+                    tableDelete(&vm.globals, name);
+                    runtimeError("Undefined variable %s\n", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_GET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                push(vm.stack[slot]);
+                break;
+            }
+            case OP_SET_LOCAL: {
+                uint8_t slot = READ_BYTE();
+                vm.stack[slot] = peek(0);
                 break;
             }
             case OP_RETURN: return INTERPRET_OK;
@@ -190,7 +217,7 @@ InterpretResult run() {
 #undef BINARY_OP
 }
 
-InterpretResult interpret(const char* source) {
+InterpretResult interpret(const char* source, bool saveChunk) {
     Chunk chunk;
     initChunk(&chunk);
     if (!compile(source, &chunk)) {
@@ -199,6 +226,10 @@ InterpretResult interpret(const char* source) {
     }
     vm.chunk = &chunk;
     vm.ip = vm.chunk->code;
+
+    if (saveChunk)
+        writeChunkToFile(&chunk, "out.chunk");
+
     InterpretResult result = run();
     freeChunk(&chunk);
     return result;

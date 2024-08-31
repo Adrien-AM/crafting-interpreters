@@ -25,7 +25,10 @@ typedef enum {
     OP_ASSERT,
     OP_POP,
     OP_DEFINE_GLOBAL,
-    OP_GET_GLOBAL
+    OP_GET_GLOBAL,
+    OP_SET_GLOBAL,
+    OP_GET_LOCAL,
+    OP_SET_LOCAL,
 } OpCode;
 
 typedef struct {
@@ -104,5 +107,8 @@ void writeConstant(Chunk* chunk, Value value, int line);
  * @param chunk Pointer to the Chunk to be freed.
  */
 void freeChunk(Chunk* chunk);
+
+void writeChunkToFile(Chunk* chunk, const char* filename);
+Chunk* readChunkFromFile(const char* filename);
 
 #endif

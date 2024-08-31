@@ -15,7 +15,7 @@ static void repl() {
             printf("\n");
             break;
         }
-        interpret(line);
+        interpret(line, false);
     }
 }
 
@@ -43,12 +43,27 @@ static char* readFile(const char* path) {
     return buffer;
 }
 
-static void runFile(const char* path) {
+static void runFile(const char* path, bool saveChunk) {
     char* source = readFile(path);
-    InterpretResult result = interpret(source);
+    InterpretResult result = interpret(source, saveChunk);
     free(source);
     if (result == INTERPRET_COMPILE_ERROR)
         exit(65);
+    if (result == INTERPRET_RUNTIME_ERROR)
+        exit(70);
+}
+
+static void runChunkFile(const char* path) {
+    Chunk* chunk = readChunkFromFile(path);
+    if (chunk == NULL) {
+        fprintf(stderr, "Could not read chunk file \"%s\".\n", path);
+        exit(74);
+    }
+    vm.chunk = chunk;
+    vm.ip = chunk->code;
+    InterpretResult result = run();
+    freeChunk(chunk);
+    free(chunk);
     if (result == INTERPRET_RUNTIME_ERROR)
         exit(70);
 }
@@ -57,10 +72,16 @@ int main(int argc, const char* argv[]) {
     initVM();
     if (argc == 1) {
         repl();
-    } else if (argc == 2) {
-        runFile(argv[1]);
+    } else if (argc == 2 || (argc == 3 && (strcmp(argv[1], "--save") == 0 || strcmp(argv[1], "--load") == 0))) {
+        if (argc == 3 && strcmp(argv[1], "--save") == 0) {
+            runFile(argv[2], true);
+        } else if (argc == 3 && strcmp(argv[1], "--load") == 0) {
+            runChunkFile(argv[2]);
+        } else {
+            runFile(argv[1], false);
+        }
     } else {
-        fprintf(stderr, "Usage: clox [path]\n");
+        fprintf(stderr, "Usage: clox [--save | --load] [path]\n");
         exit(64);
     }
     freeVM();

@@ -68,6 +68,14 @@ ObjString* copyString(const char* chars, int length) {
     return string;
 }
 
+bool stringsEqual(ObjString* a, ObjString* b) {
+    return (
+        a->length == b->length && 
+        a->hash == b->hash &&
+        memcmp(a->chars, b->chars, a->length) == 0
+    );  
+}
+
 void printObject(Value value) {
     if (!IS_OBJ(value)) {
     }
