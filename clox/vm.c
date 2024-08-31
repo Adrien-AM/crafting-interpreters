@@ -76,11 +76,13 @@ void initVM() {
     resetStack();
     vm.objects = NULL;
     initTable(&vm.strings);
+    initTable(&vm.globals);
 }
 
 InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
+#define READ_STRING() AS_STRING(READ_CONSTANT())
 // Using a do while loop in the macro looks funny, but it gives you a way to
 // contain multiple statements inside a block that also permits a semicolon at
 // the end.
@@ -154,14 +156,37 @@ InterpretResult run() {
             case OP_GREATER: BINARY_OP(BOOL_VAL, >); break;
             case OP_LESS: BINARY_OP(BOOL_VAL, <); break;
             case OP_NOT: push(BOOL_VAL(isFalsey(pop()))); break;
-            case OP_RETURN:
+            case OP_PRINT:
                 printValue(pop());
                 printf("\n");
-                return INTERPRET_OK;
+                break;
+            case OP_ASSERT:
+                if (isFalsey(pop()))
+                    runtimeError("Assertion error.");
+                break;
+            case OP_POP: pop(); break;
+            case OP_DEFINE_GLOBAL: {
+                ObjString* name = READ_STRING();
+                tableSet(&vm.globals, name, peek(0));
+                pop();
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                ObjString* name = READ_STRING();
+                Value value;
+                if (!tableGet(&vm.globals, name, &value)) {
+                    runtimeError("Undefined variable %s.\n", name->chars);
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                push(value);
+                break;
+            }
+            case OP_RETURN: return INTERPRET_OK;
         }
     }
 #undef READ_BYTE
 #undef READ_CONSTANT
+#undef READ_STRING
 #undef BINARY_OP
 }
 
@@ -193,4 +218,5 @@ Value pop() {
 void freeVM() {
     freeObjects();
     freeTable(&vm.strings);
+    freeTable(&vm.globals);
 }

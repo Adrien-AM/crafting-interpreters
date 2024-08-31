@@ -45,6 +45,7 @@ ObjString* takeString(const char* chars, int length) {
 
     ObjString* string = allocateString(length);
     memcpy(string->chars, chars, length * sizeof(char));
+    string->chars[length] = '\0';
     string->hash = hash;
 
     return string;
