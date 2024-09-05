@@ -59,8 +59,8 @@ static void runChunkFile(const char* path) {
         fprintf(stderr, "Could not read chunk file \"%s\".\n", path);
         exit(74);
     }
-    vm.chunk = chunk;
-    vm.ip = chunk->code;
+    vm.frames->function->chunk = *chunk;
+    vm.frames->ip = chunk->code;
     InterpretResult result = run();
     freeChunk(chunk);
     free(chunk);
