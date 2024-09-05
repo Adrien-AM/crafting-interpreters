@@ -67,7 +67,7 @@ void ensureLinesCapacity(Chunk* chunk, int line)
             chunk->lines = GROW_ARRAY(int, chunk->lines, 0, chunk->maxLines);
         } else {
             chunk->currentLine += 2;
-            if (chunk->currentLine > chunk->maxLines) {
+            if (chunk->currentLine >= chunk->maxLines) {
                 int oldCapacity = chunk->maxLines;
                 chunk->maxLines = GROW_CAPACITY(oldCapacity);
                 chunk->lines = GROW_ARRAY(int, chunk->lines, oldCapacity, chunk->maxLines);

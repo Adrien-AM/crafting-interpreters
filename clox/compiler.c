@@ -16,6 +16,7 @@
 typedef enum {
     PREC_NONE,
     PREC_ASSIGNMENT, // =
+    PREC_TERNARY,    // ? :
     PREC_OR,         // or
     PREC_AND,        // and
     PREC_EQUALITY,   // == !=
@@ -66,7 +67,7 @@ static void initCompiler(Compiler* compiler) {
     current = compiler;
 }
 
-static Chunk* currentChunk() { return compilingChunk; }
+static inline Chunk* currentChunk() { return compilingChunk; }
 
 static void errorAt(Token* token, const char* message) {
     if (parser.panicMode)
@@ -153,6 +154,33 @@ static void emitBytes(uint8_t byte1, uint8_t byte2) {
 
 static void emitConstant(Value value) {
     writeConstant(currentChunk(), value, parser.previous.line);
+}
+
+static void patchJump(int offset) {
+    int jump = currentChunk()->count - offset - 2;
+
+    if (jump > UINT8_MAX) {
+        error("Too much code to jump over.");
+    }
+
+    currentChunk()->code[offset] = (jump >> 8) & 0xff;
+    currentChunk()->code[offset + 1] = jump & 0xff;
+}
+
+static int emitJump(uint8_t instruction) {
+    emitByte(instruction);
+    emitByte(0xff); // placeholders
+    emitByte(0xff);
+    return currentChunk()->count - 2;
+}
+
+static void emitLoop(int loopStart) {
+    emitByte(OP_LOOP);
+    int offset = currentChunk()->count - loopStart + 2;
+    if (offset > UINT16_MAX)
+        error("Loop body too large.");
+    emitByte((offset >> 8) & 0xff);
+    emitByte(offset & 0xff);
 }
 
 static void emitReturn() { emitByte(OP_RETURN); }
@@ -286,8 +314,34 @@ static uint8_t parseVariable() {
     return identifierConstant(&parser.previous);
 }
 
+static void and_(bool) {
+    int endJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    parsePrecedence(PREC_AND);
+    patchJump(endJump);
+}
+
+static void or_(bool) {
+    int elseJump = emitJump(OP_JUMP_IF_FALSE);
+    int endJump = emitJump(OP_JUMP);
+
+    // if right operand is false, pop it and evaluate left operand ; it will be
+    // the result
+    patchJump(elseJump);
+    emitByte(OP_POP);
+
+    parsePrecedence(PREC_OR);
+    // Otherwise *don't pop* and jump to the end, left operand is already the
+    // result
+    patchJump(endJump);
+}
+
 static void expression() { parsePrecedence(PREC_ASSIGNMENT); }
 // === Node builders ===
+
+// fy C
+static void block();
+static void statement();
 
 static void printStatement() {
     expression();
@@ -321,7 +375,98 @@ static void varDeclaration() {
     defineVariable(global);
 }
 
-static void block(); // fy C
+static void ifStatement() {
+    consume(TOKEN_LEFT_PAREN, "Expect parenthesis after 'if'");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect closing parenthesis after condition");
+
+    int thenJump = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    statement();
+
+    int elseJump = emitJump(OP_JUMP);
+
+    patchJump(thenJump);
+    emitByte(OP_POP);
+
+    if (match(TOKEN_ELSE))
+        statement();
+    patchJump(elseJump);
+}
+
+static void whileStatement() {
+    int loopStart = currentChunk()->count;
+
+    consume(TOKEN_LEFT_PAREN, "Expect parenthesis after 'while'");
+    expression();
+    consume(TOKEN_RIGHT_PAREN, "Expect closing parenthesis after condition");
+
+    int exitJump = emitJump(OP_JUMP_IF_FALSE);
+
+    emitByte(OP_POP);
+    statement();
+
+    emitLoop(loopStart);
+
+    patchJump(exitJump);
+    emitByte(OP_POP);
+}
+
+static void forStatement() {
+    beginScope();
+    consume(TOKEN_LEFT_PAREN, "Expect '(' after 'for'.");
+
+    // initializer
+    if (match(TOKEN_SEMICOLON)) {
+        // No initializer.
+    } else if (match(TOKEN_VAR)) {
+        varDeclaration();
+    } else {
+        expressionStatement();
+    }
+
+    // condition
+    int loopStart = currentChunk()->count;
+    int exitJump = -1;
+    if (!match(TOKEN_SEMICOLON)) {
+        expression();
+        consume(TOKEN_SEMICOLON, "Expect ';' after loop condition.");
+        // Jump out of the loop if the condition is false.
+        exitJump = emitJump(OP_JUMP_IF_FALSE);
+        emitByte(OP_POP); // Condition.
+    }
+
+    // increment
+    if (!match(TOKEN_RIGHT_PAREN)) {
+        // Jump to body before doing anything
+        int bodyJump = emitJump(OP_JUMP);
+        int incrementStart = currentChunk()->count;
+
+        // parse increment expression
+        expression();
+
+        emitByte(OP_POP); // we don't care about the value
+        consume(TOKEN_RIGHT_PAREN, "Expect ')' after for clauses.");
+
+        // Go to body
+        emitLoop(loopStart);
+        // And change final jump to go to increment instead of body
+        loopStart = incrementStart;
+
+        patchJump(bodyJump);
+    }
+
+    statement();
+
+    emitLoop(loopStart);
+
+    if (exitJump != -1) {
+        patchJump(exitJump);
+        emitByte(OP_POP); // Condition.
+    }
+
+    endScope();
+}
 
 static void statement() {
     if (match(TOKEN_PRINT)) {
@@ -332,6 +477,12 @@ static void statement() {
         beginScope();
         block();
         endScope();
+    } else if (match(TOKEN_IF)) {
+        ifStatement();
+    } else if (match(TOKEN_WHILE)) {
+        whileStatement();
+    } else if (match(TOKEN_FOR)) {
+        forStatement();
     } else {
         expressionStatement();
     }
@@ -357,6 +508,20 @@ static void block() {
 static void grouping(bool) {
     expression();
     consume(TOKEN_RIGHT_PAREN, "Expect ')' after expression.");
+}
+
+static void ternary(bool) {
+    int jumpFalse = emitJump(OP_JUMP_IF_FALSE);
+    emitByte(OP_POP);
+    expression();
+    int jumpEnd = emitJump(OP_JUMP);
+
+    consume(TOKEN_COLON, "Expect ':' in ternary operator");
+
+    patchJump(jumpFalse);
+    emitByte(OP_POP);
+    expression();
+    patchJump(jumpEnd);
 }
 
 static void binary(bool) {
@@ -458,11 +623,11 @@ ParseRule rules[] = {
     [TOKEN_GREATER_EQUAL] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS] = {NULL, binary, PREC_COMPARISON},
     [TOKEN_LESS_EQUAL] = {NULL, binary, PREC_COMPARISON},
-    [TOKEN_QUESTION] = {NULL, NULL, PREC_NONE},
+    [TOKEN_QUESTION] = {NULL, ternary, PREC_TERNARY},
     [TOKEN_IDENTIFIER] = {variable, NULL, PREC_NONE},
     [TOKEN_STRING] = {string, NULL, PREC_NONE},
     [TOKEN_NUMBER] = {number, NULL, PREC_NONE},
-    [TOKEN_AND] = {NULL, NULL, PREC_NONE},
+    [TOKEN_AND] = {NULL, and_, PREC_AND},
     [TOKEN_CLASS] = {NULL, NULL, PREC_NONE},
     [TOKEN_ELSE] = {NULL, NULL, PREC_NONE},
     [TOKEN_FALSE] = {literal, NULL, PREC_NONE},
@@ -470,7 +635,7 @@ ParseRule rules[] = {
     [TOKEN_FUN] = {NULL, NULL, PREC_NONE},
     [TOKEN_IF] = {NULL, NULL, PREC_NONE},
     [TOKEN_NIL] = {literal, NULL, PREC_NONE},
-    [TOKEN_OR] = {NULL, NULL, PREC_NONE},
+    [TOKEN_OR] = {NULL, or_, PREC_OR},
     [TOKEN_PRINT] = {NULL, NULL, PREC_NONE},
     [TOKEN_ASSERT] = {NULL, NULL, PREC_NONE},
     [TOKEN_RETURN] = {NULL, NULL, PREC_NONE},

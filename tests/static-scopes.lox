@@ -17,3 +17,11 @@ var c = "global c";
 assert a == "global a";
 assert b == "global b";
 assert c == "global c";
+
+
+var x = 0;
+{
+    x = 1;
+    assert x == 1;
+}
+assert x == 1;

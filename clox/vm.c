@@ -18,7 +18,7 @@ static void runtimeError(const char* format, ...) {
     va_end(args);
     fputs("\n", stderr);
     size_t instruction = vm.ip - vm.chunk->code - 1;
-    int line = vm.chunk->lines[instruction];
+    int line = getLine(vm.chunk, instruction);
     fprintf(stderr, "[line %d] in script\n", line);
     resetStack();
 }
@@ -37,7 +37,7 @@ static void toString() {
         if (IS_NUMBER(value)) {
             char buffer[24];
             int length =
-                snprintf(buffer, sizeof(buffer), "%.14g", AS_NUMBER(value));
+                snprintf(buffer, sizeof(buffer), "%.1f", AS_NUMBER(value));
             string = copyString(buffer, length);
         } else if (IS_BOOL(value)) {
             string =
@@ -83,6 +83,7 @@ InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
 #define READ_STRING() AS_STRING(READ_CONSTANT())
+#define READ_SHORT() (vm.ip += 2, (uint16_t)((vm.ip[-2] << 8) | vm.ip[-1]))
 // Using a do while loop in the macro looks funny, but it gives you a way to
 // contain multiple statements inside a block that also permits a semicolon at
 // the end.
@@ -191,6 +192,10 @@ InterpretResult run() {
             }
             case OP_SET_GLOBAL: {
                 ObjString* name = READ_STRING();
+                if (lastGlobalAccessed.key != NULL &&
+                    stringsEqual(lastGlobalAccessed.key, name)) {
+                    lastGlobalAccessed.value = peek(0);
+                }
                 if (tableSet(&vm.globals, name, peek(0))) {
                     tableDelete(&vm.globals, name);
                     runtimeError("Undefined variable %s\n", name->chars);
@@ -208,12 +213,29 @@ InterpretResult run() {
                 vm.stack[slot] = peek(0);
                 break;
             }
+            case OP_JUMP: {
+                uint8_t offset = READ_SHORT();
+                vm.ip += offset;
+                break;
+            }
+            case OP_JUMP_IF_FALSE: {
+                uint8_t offset = READ_SHORT();
+                if (isFalsey(peek(0)))
+                    vm.ip += offset;
+                break;
+            }
+            case OP_LOOP: {
+                uint8_t offset = READ_SHORT();
+                vm.ip -= offset;
+                break;
+            }
             case OP_RETURN: return INTERPRET_OK;
         }
     }
 #undef READ_BYTE
 #undef READ_CONSTANT
 #undef READ_STRING
+#undef READ_SHORT
 #undef BINARY_OP
 }
 
