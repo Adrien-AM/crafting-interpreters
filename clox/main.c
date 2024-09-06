@@ -43,9 +43,9 @@ static char* readFile(const char* path) {
     return buffer;
 }
 
-static void runFile(const char* path, bool saveChunk) {
+static void runFile(const char* path, bool saveCode) {
     char* source = readFile(path);
-    InterpretResult result = interpret(source, saveChunk);
+    InterpretResult result = interpret(source, saveCode);
     free(source);
     if (result == INTERPRET_COMPILE_ERROR)
         exit(65);
@@ -54,16 +54,15 @@ static void runFile(const char* path, bool saveChunk) {
 }
 
 static void runChunkFile(const char* path) {
-    Chunk* chunk = readChunkFromFile(path);
-    if (chunk == NULL) {
+    ObjFunction* main = readFunctionFromFile(path);
+    if (main == NULL) {
         fprintf(stderr, "Could not read chunk file \"%s\".\n", path);
         exit(74);
     }
-    vm.frames->function->chunk = *chunk;
-    vm.frames->ip = chunk->code;
+    push(OBJ_VAL(main));
+    callValue(OBJ_VAL(main), 0);
+    printf("Main arity = %d\n", main->arity);
     InterpretResult result = run();
-    freeChunk(chunk);
-    free(chunk);
     if (result == INTERPRET_RUNTIME_ERROR)
         exit(70);
 }
