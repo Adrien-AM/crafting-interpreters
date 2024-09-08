@@ -1,12 +1,14 @@
 #ifndef clox_vm_h
 #define clox_vm_h
 
+#include <stdlib.h>
+
 #include "chunk.h"
 #include "value.h"
 #include "table.h"
 #include "object.h"
 
-#define FRAMES_MAX 64
+#define FRAMES_MAX 512
 #define STACK_MAX (FRAMES_MAX * UINT8_COUNT)
 
 typedef struct {
@@ -28,6 +30,14 @@ typedef struct
     Table globals;
 
     ObjUpvalue* openUpvalues;
+
+    size_t bytesAllocated;
+    size_t nextGC;
+    char currentGC;
+
+    int grayCount;
+    int grayCapacity;
+    Obj** grayStack;
 } VM;
 
 typedef enum {

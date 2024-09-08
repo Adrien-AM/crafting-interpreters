@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g
+CFLAGS = -Wall -Wextra -std=c23 -g
 SRCS = $(wildcard *.c)
 BUILD_DIR = build
 OBJS = $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))

@@ -2,7 +2,6 @@
 #define clox_chunk_h
 
 #include "common.h"
-#include "memory.h"
 #include "value.h"
 
 typedef enum {
@@ -54,6 +53,8 @@ typedef struct {
     int maxLines;
     int currentLine;
 } Chunk;
+
+#include "memory.h"
 
 /**
  * @brief Initializes a new Chunk.

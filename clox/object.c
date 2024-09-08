@@ -15,7 +15,11 @@ static Obj* allocateObject(size_t size, ObjType type) {
     Obj* object = (Obj*)reallocate(NULL, 0, size);
     object->type = type;
     object->next = vm.objects;
+    object->lastCollect = 0;
     vm.objects = object;
+// #ifdef DEBUG_LOG_GC
+//     printf("%p allocate %ld for %d\n", (void*)object, size, type);
+// #endif
     return object;
 }
 
@@ -108,7 +112,9 @@ ObjString* copyString(const char* chars, int length) {
     string->chars[length] = '\0';
     string->hash = hash;
 
+    push(OBJ_VAL(string));
     tableSet(&vm.strings, string, NIL_VAL);
+    pop();
 
     return string;
 }
@@ -133,7 +139,7 @@ void printObject(Value value) {
 void writeChunkToFile(Chunk* chunk, FILE* file);
 
 void writeObjFunctionToFile(ObjFunction* function, FILE* file) {
-    Obj fakeObj = {.type = OBJ_FUNCTION};
+    Obj fakeObj = {.type = OBJ_FUNCTION, .lastCollect = 0};
     Value fakeVal = {.type = VAL_OBJ, .as = {.obj = &fakeObj}};
     fwrite(&fakeVal, sizeof(Value), 1, file);
 

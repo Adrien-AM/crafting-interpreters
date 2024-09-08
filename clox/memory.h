@@ -2,6 +2,11 @@
 #define clox_memory_h
 
 #include "common.h"
+#include "object.h"
+#include "value.h"
+
+#define GC_HEAP_GROW_FACTOR 2
+#define GC_WAVE_DELAY 3
 
 #define GROW_CAPACITY(capacity) ((capacity) < 8 ? 8 : (capacity) * 2)
 #define GROW_ARRAY(type, pointer, oldCount, newCount)                          \
@@ -13,6 +18,10 @@
 #define FREE(type, pointer) reallocate(pointer, sizeof(type), 0)
 
 void* reallocate(void* pointer, size_t oldSize, size_t newSize);
+bool isOld(Obj* object);
+void markObject(Obj* object);
+void markValue(Value value);
+void collectGarbage();
 void freeObjects();
 
 #endif

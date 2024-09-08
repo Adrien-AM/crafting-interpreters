@@ -126,9 +126,9 @@ static bool isFalsey(Value value) {
     return IS_NIL(value) || (IS_BOOL(value) && !AS_BOOL(value));
 }
 
-static void toString() {
-    if (!IS_STRING(peek(0))) {
-        Value value = pop();
+static void toString(int distance) {
+    Value value = peek(distance);
+    if (!IS_STRING(value)) {
         ObjString* string;
 
         if (IS_NUMBER(value)) {
@@ -142,17 +142,20 @@ static void toString() {
         } else if (IS_NIL(value)) {
             string = copyString("nil", 3);
         } else {
-            runtimeError("Cannot convert value to string.");
+            runtimeError("Cannot convert object value to string.");
             return;
         }
 
-        push(OBJ_VAL(string));
+        // side note : no need to worry about freeing anything, it can't be an
+        // obj :)
+        vm.stackTop[-1 - distance] = OBJ_VAL(string);
     }
 }
 
 static void concatenate() {
-    ObjString* b = AS_STRING(pop());
-    ObjString* a = AS_STRING(pop());
+    // Keep them on the stack to avoid getting GC'ed
+    ObjString* b = AS_STRING(peek(0));
+    ObjString* a = AS_STRING(peek(1));
 
     int length = a->length + b->length;
     char str[length];
@@ -166,6 +169,8 @@ static void concatenate() {
     // needed ? those are not variable strings but raw data
     tableSet(&vm.strings, result, NIL_VAL);
 
+    pop();
+    pop();
     push(OBJ_VAL(result));
 }
 
@@ -177,6 +182,12 @@ void initVM() {
     vm.frameCount = 0;
     defineNative("clock", clockNative);
     vm.openUpvalues = NULL;
+    vm.bytesAllocated = 0;
+    vm.nextGC = 1024 * 1024;
+    vm.currentGC = 0;
+    vm.grayCount = 0;
+    vm.grayCapacity = 0;
+    vm.grayStack = NULL;
 }
 
 InterpretResult run() {
@@ -240,12 +251,10 @@ InterpretResult run() {
                     push(NUMBER_VAL(a + b));
                 } else if (IS_STRING(peek(0)) || IS_STRING(peek(1))) {
                     if (!IS_STRING(peek(0))) {
-                        toString();
+                        toString(0);
                     }
                     if (!IS_STRING(peek(1))) {
-                        Value tmp = pop();
-                        toString();
-                        push(tmp);
+                        toString(1);
                     }
                     concatenate();
                 } else {

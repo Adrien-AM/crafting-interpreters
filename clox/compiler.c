@@ -5,6 +5,7 @@
 #include "common.h"
 #include "compiler.h"
 #include "scanner.h"
+#include "memory.h"
 
 #ifdef DEBUG_PRINT_CODE
 #include "debug.h"
@@ -467,7 +468,7 @@ static void expressionStatement() {
 }
 
 static void funDeclaration() {
-    uint8_t global = parseVariable("Expect function name.");
+    uint8_t global = parseVariable();
 
     markInitialized();
     function(TYPE_FUNCTION);
@@ -825,4 +826,12 @@ ObjFunction* compile(const char* source) {
 
     ObjFunction* function = endCompiler();
     return parser.hadError ? NULL : function;
+}
+
+void markCompilerRoots() {
+    Compiler* compiler = current;
+    while (compiler != NULL) {
+        markObject((Obj*)compiler->function);
+        compiler = compiler->enclosing;
+    }
 }

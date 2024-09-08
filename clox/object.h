@@ -1,14 +1,15 @@
 #ifndef clox_object_h
 #define clox_object_h
 
-#include "chunk.h"
 #include "common.h"
 #include "value.h"
+#include "chunk.h"
 
-typedef enum { OBJ_STRING, OBJ_FUNCTION, OBJ_NATIVE, OBJ_CLOSURE, OBJ_UPVALUE } ObjType;
+typedef enum : char { OBJ_STRING, OBJ_FUNCTION, OBJ_NATIVE, OBJ_CLOSURE, OBJ_UPVALUE } ObjType;
 
 struct Obj {
     ObjType type;
+    char lastCollect;
     Obj* next; // Instrusive list pattern for garbage collection
 };
 
