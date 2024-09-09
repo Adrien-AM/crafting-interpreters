@@ -35,7 +35,12 @@ typedef enum {
     OP_LOOP,
     OP_CALL,
     OP_CLOSURE,
-    OP_CLOSE_UPVALUE
+    OP_CLOSE_UPVALUE,
+    OP_CLASS,
+    OP_GET_PROPERTY,
+    OP_SET_PROPERTY,
+    OP_METHOD,
+    OP_INVOKE
 } OpCode;
 
 char* opCodeToString(OpCode code);

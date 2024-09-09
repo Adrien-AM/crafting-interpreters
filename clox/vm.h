@@ -33,11 +33,13 @@ typedef struct
 
     size_t bytesAllocated;
     size_t nextGC;
-    char currentGC;
+    short currentGC;
 
     int grayCount;
     int grayCapacity;
     Obj** grayStack;
+
+    ObjString* initString;
 } VM;
 
 typedef enum {

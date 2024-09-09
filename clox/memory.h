@@ -6,7 +6,7 @@
 #include "value.h"
 
 #define GC_HEAP_GROW_FACTOR 2
-#define GC_WAVE_DELAY 3
+#define GC_WAVE_DELAY 100
 
 #define GROW_CAPACITY(capacity) ((capacity) < 8 ? 8 : (capacity) * 2)
 #define GROW_ARRAY(type, pointer, oldCount, newCount)                          \

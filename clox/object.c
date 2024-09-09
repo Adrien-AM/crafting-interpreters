@@ -15,11 +15,11 @@ static Obj* allocateObject(size_t size, ObjType type) {
     Obj* object = (Obj*)reallocate(NULL, 0, size);
     object->type = type;
     object->next = vm.objects;
-    object->lastCollect = 0;
+    object->lastCollect = vm.currentGC;
     vm.objects = object;
-// #ifdef DEBUG_LOG_GC
-//     printf("%p allocate %ld for %d\n", (void*)object, size, type);
-// #endif
+    #ifdef DEBUG_LOG_GC
+        printf("%p allocate %ld for %d\n", (void*)object, size, type);
+    #endif
     return object;
 }
 
@@ -56,6 +56,27 @@ ObjUpvalue* newUpvalue(Value* slot) {
     upvalue->next = NULL;
     upvalue->closed = NIL_VAL;
     return upvalue;
+}
+
+ObjClass* newClass(ObjString* name) {
+    ObjClass* klass = ALLOCATE_OBJ(ObjClass, OBJ_CLASS);
+    klass->name = name;
+    initTable(&klass->methods);
+    return klass;
+}
+
+ObjInstance* newInstance(ObjClass* klass) {
+    ObjInstance* instance = ALLOCATE_OBJ(ObjInstance, OBJ_INSTANCE);
+    instance->klass = klass;
+    initTable(&instance->fields);
+    return instance;
+}
+
+ObjBoundMethod* newBoundMethod(Value receiver, ObjClosure* method) {
+    ObjBoundMethod* bound = ALLOCATE_OBJ(ObjBoundMethod, OBJ_BOUND_METHOD);
+    bound->receiver = receiver;
+    bound->method = method;
+    return bound;
 }
 
 static void printFunction(ObjFunction* function) {
@@ -133,6 +154,15 @@ void printObject(Value value) {
         case OBJ_NATIVE: printf("<native fn>"); break;
         case OBJ_CLOSURE: printFunction(AS_CLOSURE(value)->function); break;
         case OBJ_UPVALUE: printf("upvalue"); break;
+        case OBJ_CLASS:
+            printf("<class %s>", AS_CLASS(value)->name->chars);
+            break;
+        case OBJ_INSTANCE:
+            printf("<%s instance>", AS_INSTANCE(value)->klass->name->chars);
+            break;
+        case OBJ_BOUND_METHOD:
+            printFunction(AS_BOUND_METHOD(value)->method->function);
+            break;
     }
 }
 
