@@ -141,8 +141,8 @@ ObjString* copyString(const char* chars, int length) {
 }
 
 bool stringsEqual(ObjString* a, ObjString* b) {
-    return (a->length == b->length && a->hash == b->hash &&
-            memcmp(a->chars, b->chars, a->length) == 0);
+    return (a == b) || (a->length == b->length && a->hash == b->hash &&
+            !memcmp(a->chars, b->chars, a->length));
 }
 
 void printObject(Value value) {
@@ -169,9 +169,11 @@ void printObject(Value value) {
 void writeChunkToFile(Chunk* chunk, FILE* file);
 
 void writeObjFunctionToFile(ObjFunction* function, FILE* file) {
+    #ifndef NAN_BOXING
     Obj fakeObj = {.type = OBJ_FUNCTION, .lastCollect = 0};
     Value fakeVal = {.type = VAL_OBJ, .as = {.obj = &fakeObj}};
     fwrite(&fakeVal, sizeof(Value), 1, file);
+    #endif
 
     // Write the arity
     fwrite(&function->arity, sizeof(int), 1, file);

@@ -74,8 +74,9 @@ static bool call(ObjClosure* closure, int argCount) {
 }
 
 bool callValue(Value callee, int argCount) {
-    if (IS_OBJ(callee)) {
+    if (__builtin_expect(IS_OBJ(callee), true)) {
         switch (OBJ_TYPE(callee)) {
+            case OBJ_CLOSURE: return call(AS_CLOSURE(callee), argCount);
             case OBJ_NATIVE: {
                 NativeFn native = AS_NATIVE(callee);
                 Value result = native(argCount, vm.stackTop - argCount);
@@ -83,16 +84,14 @@ bool callValue(Value callee, int argCount) {
                 push(result);
                 return true;
             }
-            case OBJ_CLOSURE: return call(AS_CLOSURE(callee), argCount);
             case OBJ_CLASS: {
                 ObjClass* klass = AS_CLASS(callee);
                 vm.stackTop[-argCount - 1] = OBJ_VAL(newInstance(klass));
 
-                // Constructor call
                 Value initializer;
                 if (tableGet(&klass->methods, vm.initString, &initializer)) {
                     return call(AS_CLOSURE(initializer), argCount);
-                } else if (argCount != 0) {
+                } else if (__builtin_expect(argCount != 0, false)) {
                     runtimeError("Expected 0 arguments but got %d.", argCount);
                     return false;
                 }
@@ -277,16 +276,21 @@ InterpretResult run() {
         push(valueType(a op b));                                               \
     } while (false)
 
-    // Caching
+// Caching
+#ifdef NAN_BOXING
+    Entry lastGlobalAccessed = {NULL, 0};
+#else
     Entry lastGlobalAccessed = {NULL, {0}};
+#endif
 
 #ifdef DEBUG_PROFILE_CODE
     int counts[OP_CALL + 1] = {0};
 #endif
     for (;;) {
         __builtin_prefetch(&vm.stackTop[-1], 0, 3);
-        __builtin_prefetch(frame->closure->function->chunk.constants.values, 0,
-                           3);
+        // __builtin_prefetch(frame->closure->function->chunk.constants.values,
+        // 0,
+        //                    3);
 #ifdef DEBUG_TRACE_EXECUTION
         printf(" ");
         for (Value* slot = vm.stack; slot < vm.stackTop; slot++) {
@@ -378,7 +382,6 @@ InterpretResult run() {
             }
             case OP_SET_GLOBAL: {
                 ObjString* name = READ_STRING();
-                printf("Set global %s !\n", name->chars);
                 if (lastGlobalAccessed.key != NULL &&
                     stringsEqual(lastGlobalAccessed.key, name)) {
                     lastGlobalAccessed.value = peek(0);
@@ -513,6 +516,35 @@ InterpretResult run() {
                 ip = frame->ip;
                 break;
             }
+            case OP_INHERIT: {
+                Value superclass = peek(1);
+                if (!IS_CLASS(superclass)) {
+                    runtimeError("Superclass must be a class.");
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                ObjClass* subclass = AS_CLASS(peek(0));
+                tableAddAll(&AS_CLASS(superclass)->methods, &subclass->methods);
+                pop(); // Subclass.
+                break;
+            }
+            case OP_GET_SUPER: {
+                ObjString* name = READ_STRING();
+                ObjClass* superclass = AS_CLASS(pop());
+                if (!bindMethod(superclass, name)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
+            }
+            case OP_SUPER_INVOKE: {
+                ObjString* method = READ_STRING();
+                int argCount = READ_BYTE();
+                ObjClass* superclass = AS_CLASS(pop());
+                if (!invokeFromClass(superclass, method, argCount)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                frame = &vm.frames[vm.frameCount - 1];
+                break;
+            }
             case OP_RETURN: {
                 Value result = pop();
 
@@ -566,15 +598,9 @@ InterpretResult interpret(const char* source, bool saveCode) {
     return run();
 }
 
-void push(Value value) {
-    *vm.stackTop = value;
-    vm.stackTop++;
-}
+void push(Value value) { *vm.stackTop++ = value; }
 
-Value pop() {
-    vm.stackTop--;
-    return *vm.stackTop;
-}
+Value pop() { return *--vm.stackTop; }
 
 void freeVM() {
     freeTable(&vm.strings);

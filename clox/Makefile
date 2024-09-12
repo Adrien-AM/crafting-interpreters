@@ -1,11 +1,11 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c23 -g
+CFLAGS = -Wall -Wextra -std=c23 -O3
 SRCS = $(wildcard *.c)
 BUILD_DIR = build
 OBJS = $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))
 TARGET = $(BUILD_DIR)/clox
 
-.PHONY: all clean run mem
+.PHONY: all clean run mem test prof
 
 all: $(TARGET)
 
@@ -24,10 +24,15 @@ run: $(TARGET)
 mem: $(TARGET)
 	@valgrind --leak-check=full --track-origins=yes ./$(TARGET) $(ARGS)
 
+prof: CFLAGS += -pg
+prof: clean $(TARGET)
+	@./$(TARGET) $(ARGS)
+	@gprof $(TARGET) gmon.out > profile_output.txt
+	@less profile_output.txt
+
+
 TEST_SRCS = $(wildcard tests/*.c)
 TEST_TARGETS = $(patsubst tests/%.c,$(BUILD_DIR)/tests/%,$(TEST_SRCS))
-
-.PHONY: test
 
 TEST_SRCS := $(filter-out tests/test_utils.c, $(TEST_SRCS))
 TEST_TARGETS := $(patsubst tests/%.c,$(BUILD_DIR)/tests/%,$(TEST_SRCS))
@@ -46,5 +51,5 @@ $(BUILD_DIR)/tests:
 	mkdir -p $@
 
 clean:
-	rm -rf $(BUILD_DIR) vgcore.*
+	rm -rf $(BUILD_DIR) vgcore.* gmon.out
 
